@@ -2,9 +2,12 @@
 
 import React, { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { useUser } from '@clerk/nextjs'
+import { Call, useStreamVideoClient } from '@stream-io/video-react-sdk'
 
 import HomeCard from './HomeCard'
 import MeetingModal from './MeetingModal'
+import { useToast } from "@/components/ui/use-toast"
 
 const MeetingTypeList = () => {
   const router = useRouter();
@@ -12,8 +15,55 @@ const MeetingTypeList = () => {
     'isScheduleMeeting' | 'isJoiningMeeting' | 'isInstantMeeting' | undefined
   >(undefined);
 
-  const createMeeting = () => {
-    
+  const { user } = useUser();
+  const client = useStreamVideoClient();
+
+  const [value, setValue] = useState({
+    dateTime: new Date(),
+    description: '',
+    link: ''
+  })
+
+  const [callDetails, setCallDetails] = useState<Call>()
+
+  const { toast } = useToast()
+
+  const createMeeting = async () => {
+    if (!client || !user) return;
+
+    try {
+      if (!value.dateTime) {
+        toast({ title: 'Please select a date and time' });
+        return;
+      }
+
+      const id = crypto.randomUUID();
+      const call = client.call('default', id);
+
+      if (!call) throw new Error('Failed to create call');
+
+      const startsAt = value.dateTime.toISOString() || new Date(Date.now()).toISOString();
+      const description = value.description || 'Instant meeting';
+
+      await call.getOrCreate({
+        data: {starts_at: startsAt, custom: { description: description}}
+      })
+
+      setCallDetails(call);
+
+      if(!value.description) {
+        router.push(`/meeting/${call.id}`)
+      }
+
+      toast({
+        title: 'Meeting Created',
+      });
+    } catch (error) {
+      console.log(error);
+      toast({
+        title: "Failed to create meeting",
+      })
+    }
   }
 
   return (
@@ -47,12 +97,12 @@ const MeetingTypeList = () => {
       />
 
       <MeetingModal
-        isOpen={meetingState === 'isInstantMeeting'} 
+        isOpen={meetingState === 'isInstantMeeting'}
         onClose={() => setMeetingState(undefined)}
         title="Start an instant Meeting"
         className="text-center"
         buttonText="Start Meeting"
-        handleClick={createMeeting}  />
+        handleClick={createMeeting} />
 
     </section>
   )
