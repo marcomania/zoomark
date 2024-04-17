@@ -30,8 +30,10 @@ const MeetingCard = ({
 }: MeetingCardProps) => {
   const { toast } = useToast();
 
+  const color = title === 'Personal Meeting' ? '3' : '1';
+
   return (
-    <section className="flex min-h-[258px] w-full flex-col justify-between rounded-[14px] bg-dark-1 px-5 py-8 xl:max-w-[568px]">
+    <section className={`flex min-h-[258px] w-full flex-col justify-between rounded-[14px] bg-dark-${color} px-5 py-8 xl:max-w-[568px]`}>
       <article className="flex flex-col gap-5">
         <Image src={icon} alt="upcoming" width={28} height={28} />
         <div className="flex justify-between">
